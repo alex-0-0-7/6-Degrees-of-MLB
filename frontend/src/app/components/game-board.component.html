@@ -1,0 +1,161 @@
+<div class="game-container">
+  <div class="game-header">
+    <h1>🎮 6 Degrees of MLB</h1>
+    <p>Connect two players through shared teammates!</p>
+  </div>
+
+  <!-- Setup Screen -->
+  <div *ngIf="!gameStarted" class="setup-screen">
+    <h2>Start a New Game</h2>
+    
+    <div class="player-selection">
+      <div class="select-section">
+        <h3>Select Starting Player</h3>
+        <input
+          [(ngModel)]="searchQueryStart"
+          (keyup)="searchPlayersStart()"
+          type="text"
+          placeholder="Search player..."
+          class="search-input"
+        />
+        <div *ngIf="searchResultsStart.length > 0" class="search-results">
+          <button
+            *ngFor="let player of searchResultsStart"
+            (click)="selectStartPlayer(player)"
+            class="player-btn"
+          >
+            {{ player.name }} ({{ player.position }} - {{ player.team }})
+          </button>
+        </div>
+        <div *ngIf="startPlayer" class="selected-player">
+          ✓ {{ startPlayer.name }} ({{ startPlayer.position }})
+        </div>
+      </div>
+
+      <div class="select-section">
+        <h3>Select Target Player</h3>
+        <input
+          [(ngModel)]="searchQueryTarget"
+          (keyup)="searchPlayersTarget()"
+          type="text"
+          placeholder="Search player..."
+          class="search-input"
+        />
+        <div *ngIf="searchResultsTarget.length > 0" class="search-results">
+          <button
+            *ngFor="let player of searchResultsTarget"
+            (click)="selectTargetPlayer(player)"
+            class="player-btn"
+          >
+            {{ player.name }} ({{ player.position }} - {{ player.team }})
+          </button>
+        </div>
+        <div *ngIf="targetPlayer" class="selected-player">
+          ✓ {{ targetPlayer.name }} ({{ targetPlayer.position }})
+        </div>
+      </div>
+    </div>
+
+    <button
+      (click)="startNewGame()"
+      [disabled]="!startPlayer || !targetPlayer"
+      class="start-button"
+    >
+      Start Game!
+    </button>
+
+    <div class="test-mode">
+      <p>Need to test? Use sample players:</p>
+      <button (click)="useSampleGame()" class="test-button">
+        Load Sample Game
+      </button>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div *ngIf="gameStarted && game" class="game-board">
+    <div class="current-path">
+      <h3>Your Path:</h3>
+      <div class="players-chain">
+        <div class="player-card">
+          <strong>{{ currentPlayer.name }}</strong>
+          <p>{{ currentPlayer.position }} - {{ currentPlayer.team }}</p>
+        </div>
+        <div *ngFor="let move of moves" class="move">
+          <p class="connection">via {{ move.connection }}</p>
+          <div class="player-card">
+            <strong>{{ move.to_player.name }}</strong>
+            <p>{{ move.to_player.position }} - {{ move.to_player.team }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="move-input">
+      <h3>Make a Move:</h3>
+      <div class="search-box">
+        <input
+          [(ngModel)]="searchQueryMove"
+          (keyup)="searchPlayersMove()"
+          type="text"
+          placeholder="Search for a player..."
+          class="search-input"
+        />
+      </div>
+
+      <div *ngIf="searchResultsMove.length > 0" class="search-results">
+        <button
+          *ngFor="let player of searchResultsMove"
+          (click)="selectPlayer(player)"
+          class="player-btn"
+        >
+          {{ player.name }} ({{ player.position }} - {{ player.team }})
+        </button>
+      </div>
+
+      <div class="connection-input">
+        <input
+          [(ngModel)]="connection"
+          type="text"
+          placeholder="How are they connected? (e.g., 'Played for Yankees in 2015')"
+          class="connection-field"
+        />
+      </div>
+    </div>
+
+    <div class="move-count">
+      <p><strong>Moves: {{ moves.length }}</strong></p>
+      <p>Target: {{ game.target_player.name }}</p>
+    </div>
+
+    <!-- Victory Screen -->
+    <div *ngIf="gameWon" class="victory-screen">
+      <div class="victory-content">
+        <h2>🎉 Victory!</h2>
+        <p class="victory-stats">
+          <strong>Your Moves:</strong> {{ moves.length }}<br>
+          <strong>Optimal Moves:</strong> {{ optimalPathLength }}<br>
+          <strong>Performance:</strong>
+          <span *ngIf="moves.length === optimalPathLength" class="perfect">Perfect!</span>
+          <span *ngIf="moves.length < optimalPathLength" class="excellent">Better than optimal!</span>
+          <span *ngIf="moves.length > optimalPathLength" class="good">{{ moves.length - optimalPathLength }} more than optimal</span>
+        </p>
+
+        <div *ngIf="optimalPath && optimalPath.length > 0" class="optimal-path">
+          <h3>Optimal Path ({{ optimalPathLength }} moves):</h3>
+          <div class="optimal-chain">
+            <div *ngFor="let step of optimalPath; let i = index" class="optimal-step">
+              <div class="optimal-player">{{ step.name }}</div>
+              <div *ngIf="i < optimalPath.length - 1" class="optimal-connection">
+                → {{ step.connection }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button (click)="resetGame()" class="play-again-button">Play Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
