@@ -5,17 +5,29 @@
   </div>
 
   <!-- Setup Screen -->
-  <div *ngIf="!gameStarted" class="setup-screen">
-    <h2>Start a New Game</h2>
+  <!-- <div *ngIf="!gameStarted" class="setup-screen"> -->
+  <div class="setup-screen">
+    <!-- <h2>Start a New Game</h2> -->
     
     <div class="player-selection">
       <div class="select-section">
-        <h3>Select Starting Player</h3>
+        <h4>Use mutual teammates to connect {{ startPlayer?.name }} {{!startPlayer?.unique_name ? startPlayer?.year_start === startPlayer?.year_end ? '(' + startPlayer?.year_start + ')' : '(' + startPlayer?.year_start + '-' + startPlayer?.year_end + ')' : '' }}  
+          and {{ targetPlayer?.name }} {{!targetPlayer?.unique_name ? targetPlayer?.year_start === targetPlayer?.year_end ? '(' + targetPlayer?.year_start + ')' : '(' + targetPlayer?.year_start + '-' + targetPlayer?.year_end + ')' : '' }}</h4>
+        <h5>Guesses remaining: {{ 6 - attempts }}</h5>
+        <h5>Enter a teammate of {{ nextPlayer?.name }}</h5>
+        <div &ngIf="!guesses.isEmpty()">
+          <ul>
+            <li *ngFor="let guess of guesses">
+              {{ guess.player.name }} - {{ guess.validGuess ? 'Valid' : 'Invalid' }} {{ guess.win ? '(Win)' : '' }}
+            </li>
+          </ul>
+        </div>
+
         <input
           [(ngModel)]="searchQueryStart"
-          (keyup)="searchPlayersStart()"
+          (keyup)="searchPlayers()"
           type="text"
-          placeholder="Search player..."
+          [placeholder]=placeholder
           class="search-input"
         />
         <div *ngIf="searchResultsStart.length > 0" class="search-results">
@@ -24,15 +36,32 @@
             (click)="selectStartPlayer(player)"
             class="player-btn"
           >
-            {{ player.name }} ({{ player.position }} - {{ player.team }})
+            {{player.name }} ({{ player.year_start === player.year_end ? player.year_start : player.year_start + '-' + player.year_end }})
           </button>
         </div>
-        <div *ngIf="startPlayer" class="selected-player">
+        <!-- <h3>Select Starting Player</h3>
+        <input
+          [(ngModel)]="searchQueryStart"
+          (keyup)="searchPlayersStart()"
+          type="text"
+          placeholder="Search player..."
+          class="search-input"
+        /> -->
+        <!-- <div *ngIf="searchResultsStart.length > 0" class="search-results">
+          <button
+            *ngFor="let player of searchResultsStart"
+            (click)="selectStartPlayer(player)"
+            class="player-btn"
+          >
+            {{ player.name }} ({{ player.position }} - {{ player.team }})
+          </button> -->
+        <!-- </div> -->
+        <!-- <div *ngIf="startPlayer" class="selected-player">
           ✓ {{ startPlayer.name }} ({{ startPlayer.position }})
-        </div>
+        </div> -->
       </div>
 
-      <div class="select-section">
+      <!-- <div class="select-section">
         <h3>Select Target Player</h3>
         <input
           [(ngModel)]="searchQueryTarget"
@@ -53,27 +82,36 @@
         <div *ngIf="targetPlayer" class="selected-player">
           ✓ {{ targetPlayer.name }} ({{ targetPlayer.position }})
         </div>
-      </div>
+      </div> -->
     </div>
 
-    <button
+    <!-- <button
       (click)="startNewGame()"
       [disabled]="!startPlayer || !targetPlayer"
       class="start-button"
     >
       Start Game!
+    </button> -->
+    <button
+      (click)="guessPlayer()"
+      [disabled]="!valid"
+      class="start-button"
+    >
+      Guess Player!
     </button>
 
-    <div class="test-mode">
+    <!-- <div class="test-mode">
       <p>Need to test? Use sample players:</p>
       <button (click)="useSampleGame()" class="test-button">
         Load Sample Game
       </button>
-    </div>
+    </div> -->
   </div>
 
+  
+
   <!-- Game Screen -->
-  <div *ngIf="gameStarted && game" class="game-board">
+  <!-- <div *ngIf="gameStarted && game" class="game-board">
     <div class="current-path">
       <h3>Your Path:</h3>
       <div class="players-chain">
@@ -121,41 +159,48 @@
           class="connection-field"
         />
       </div>
-    </div>
+    </div> -->
 
-    <div class="move-count">
+    <!-- <div class="move-count">
       <p><strong>Moves: {{ moves.length }}</strong></p>
       <p>Target: {{ game.target_player.name }}</p>
-    </div>
+    </div> -->
 
     <!-- Victory Screen -->
     <div *ngIf="gameWon" class="victory-screen">
       <div class="victory-content">
         <h2>🎉 Victory!</h2>
-        <p class="victory-stats">
+        <h3>
+          Optimal path: {{ optimalPath.map(p => p.name).join(' → ') }}
+        </h3>
+        <h3>
+          Your path: {{startPlayer.name}} → {{ validGuesses.map(p => p.name).join(' → ') }} → {{ targetPlayer.name }}
+        </h3>
+        
+        <!-- <p class="victory-stats">
           <strong>Your Moves:</strong> {{ moves.length }}<br>
           <strong>Optimal Moves:</strong> {{ optimalPathLength }}<br>
           <strong>Performance:</strong>
           <span *ngIf="moves.length === optimalPathLength" class="perfect">Perfect!</span>
           <span *ngIf="moves.length < optimalPathLength" class="excellent">Better than optimal!</span>
           <span *ngIf="moves.length > optimalPathLength" class="good">{{ moves.length - optimalPathLength }} more than optimal</span>
-        </p>
+        </p> -->
 
-        <div *ngIf="optimalPath && optimalPath.length > 0" class="optimal-path">
+        <!-- <div *ngIf="optimalPath && optimalPath.length > 0" class="optimal-path">
           <h3>Optimal Path ({{ optimalPathLength }} moves):</h3>
           <div class="optimal-chain">
             <div *ngFor="let step of optimalPath; let i = index" class="optimal-step">
-              <div class="optimal-player">{{ step.name }}</div>
-              <div *ngIf="i < optimalPath.length - 1" class="optimal-connection">
+              <div class="optimal-player">{{ step.fullName }}</div>
+              <div *ngIf="i < optimalPath?.length - 1" class="optimal-connection">
                 → {{ step.connection }}
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <button (click)="resetGame()" class="play-again-button">Play Again</button>
       </div>
     </div>
-  </div>
+  <!-- </div> -->
 </div>
 
