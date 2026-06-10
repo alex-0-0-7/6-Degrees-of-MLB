@@ -5,11 +5,12 @@ from pybaseball import statcast, playerid_lookup, batting_stats_bref
 import pandas as pd
 import json
 import numpy as np
+from unidecode import unidecode
 
 def fetch_mlb_players():
     """
     Fetch MLB player data from statsapi.mlb.com
-    Gets all active players from recent seasons
+    Gets players from recent seasons
     """
     try:
         print("🔄 Fetching MLB player data from StatsAPI...")
@@ -23,9 +24,11 @@ def fetch_mlb_players():
            json.dump(mlb_teams, f)
         
         all_players = []
+        playerid_hash={}  # To track unique players by ID
+        player_name_hash={}  # To track unique players by name (for cases where 2 different players have the same name)
 
         # return all_players
-        for season in range(2020, 2027):
+        for season in range(2000, 2026):  # Fetch players from 2000 to 2025
             for team in mlb_teams:     
                 # Fetch roster for each team
                     roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team['id']}/roster?season={season}&rosterType=active"
@@ -37,16 +40,26 @@ def fetch_mlb_players():
                             for player_info in roster_data['roster']:
                                 person = player_info['person']
                                 
-                                result = next((obj for obj in all_players if obj['id'] == str(person['id'])), None)
+                                # result = next((obj for obj in all_players if obj['id'] == str(person['id'])), None)
+                                result = playerid_hash.get(str(person['id']), None)
                                 if not result:
+                                    # If we see a player with the same name but different ID, mark both as not unique
+                                    if player_name_hash.get(person['fullName'], {}) and player_name_hash[person['fullName']]['id'] != str(person['id']):
+                                        for i in range(len(all_players)):
+                                            if all_players[i]['name'] == person['fullName']:
+                                                all_players[i]['unique_name'] = False
                                     player_data = {
-                                        'name': person['fullName'],
+                                        'name': unidecode(person['fullName']),
                                         'id': str(person['id']),
                                         'year_start': season,
                                         'year_end': season,
-                                        'teams':[f"{str(season)} {team['name']}"]
+                                        'teams':[f"{str(season)} {team['name']}"],
+                                        # Handle players who have the same name but are different people (e.g. 2 Will Smiths) - if we see the same name but different ID, mark both as not unique
+                                        'unique_name': False if player_name_hash.get(person['fullName'], {}) and player_name_hash[person['fullName']]['id'] != str(person['id']) else True
                                     }
                                     all_players.append(player_data)
+                                    playerid_hash[str(person['id'])] = player_data
+                                    player_name_hash[person['fullName']] = player_data
                                 else:
                                     result['year_end'] = season
                                     result['teams'].append(f"{str(season)} {team['name']}")
@@ -79,11 +92,11 @@ def seed_database():
         #     player = Player(**player_data)
         #     db.session.add(player)
 
-        with open('players.json', 'w') as f:
-           json.dump(players_data, f)
+        with open('../frontend/src/assets/players.json', 'w') as f:
+           json.dump({"players": players_data}, f)
         
         # db.session.commit()
-        print(f"✓ Seeded database with {min(len(players_data), 500)} MLB players")
+        # print(f"✓ Seeded database with {min(len(players_data), 500)} MLB players")
 
 if __name__ == '__main__':
     seed_database()
