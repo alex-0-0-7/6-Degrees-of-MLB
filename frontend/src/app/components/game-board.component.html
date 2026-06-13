@@ -11,17 +11,23 @@
     
     <div class="player-selection">
       <div class="select-section">
-        <h4>Use mutual teammates to connect {{ startPlayer?.name }} {{!startPlayer?.unique_name ? startPlayer?.year_start === startPlayer?.year_end ? '(' + startPlayer?.year_start + ')' : '(' + startPlayer?.year_start + '-' + startPlayer?.year_end + ')' : '' }}  
-          and {{ targetPlayer?.name }} {{!targetPlayer?.unique_name ? targetPlayer?.year_start === targetPlayer?.year_end ? '(' + targetPlayer?.year_start + ')' : '(' + targetPlayer?.year_start + '-' + targetPlayer?.year_end + ')' : '' }}</h4>
+        <h4>Use mutual teammates to connect: </h4>
+        <h5>
+          {{ startPlayer?.name }} {{!startPlayer?.unique_name ? startPlayer?.year_start === startPlayer?.year_end ? '(' + startPlayer?.year_start + ')' : '(' + startPlayer?.year_start + '-' + startPlayer?.year_end + ')' : '' }}  
+          and {{ targetPlayer?.name }} {{!targetPlayer?.unique_name ? targetPlayer?.year_start === targetPlayer?.year_end ? '(' + targetPlayer?.year_start + ')' : '(' + targetPlayer?.year_start + '-' + targetPlayer?.year_end + ')' : '' }}
+        </h5>
         <h5>Guesses remaining: {{ 6 - attempts }}</h5>
         <h5>Enter a teammate of {{ nextPlayer?.name }}</h5>
-        <div &ngIf="!guesses.isEmpty()">
-          <ul>
-            <li *ngFor="let guess of guesses">
-              {{ guess.player.name }} - {{ guess.validGuess ? 'Valid' : 'Invalid' }} {{ guess.win ? '(Win)' : '' }}
-            </li>
-          </ul>
+        
+        <div *ngIf="guesses.length > 0" class="guesses-header">
+          <h5>Previous Guesses:</h5>
+          <div class="guesses-list">
+            <div *ngFor="let guess of guesses" [ngClass]="{'valid-guess': guess.validGuess, 'invalid-guess': !guess.validGuess, 'win-guess': guess.win}">
+              {{ guess.player.name }}
+            </div>
+          </div>
         </div>
+        
 
         <input
           [(ngModel)]="searchQueryStart"
@@ -39,26 +45,30 @@
             {{player.name }} ({{ player.year_start === player.year_end ? player.year_start : player.year_start + '-' + player.year_end }})
           </button>
         </div>
-        <!-- <h3>Select Starting Player</h3>
-        <input
-          [(ngModel)]="searchQueryStart"
-          (keyup)="searchPlayersStart()"
-          type="text"
-          placeholder="Search player..."
-          class="search-input"
-        /> -->
-        <!-- <div *ngIf="searchResultsStart.length > 0" class="search-results">
-          <button
-            *ngFor="let player of searchResultsStart"
-            (click)="selectStartPlayer(player)"
-            class="player-btn"
-          >
-            {{ player.name }} ({{ player.position }} - {{ player.team }})
-          </button> -->
-        <!-- </div> -->
-        <!-- <div *ngIf="startPlayer" class="selected-player">
-          ✓ {{ startPlayer.name }} ({{ startPlayer.position }})
-        </div> -->
+      </div>
+
+      <div class="select-section">
+        <button
+          (click)="toggleHint()"
+          [disabled]="hintUsed"
+          class="hint-button"
+        >
+          Hint (Show teams of {{ startPlayer?.name }})
+        </button>
+        <div *ngIf="hintUsed" class="hint-revealed">
+          <p *ngFor="let team of startPlayerTeams"> {{ team }} </p>
+        </div>
+
+        <button
+          (click)="toggleHintTarget()"
+          [disabled]="hintUsedTarget"
+          class="hint-button button-target"
+        >
+          Hint (Show teams of {{ targetPlayer?.name }})
+        </button>
+        <div *ngIf="hintUsedTarget" class="hint-revealed">
+          <p *ngFor="let team of targetPlayerTeams"> {{ team }} </p>
+        </div>
       </div>
 
       <!-- <div class="select-section">
@@ -108,64 +118,6 @@
     </div> -->
   </div>
 
-  
-
-  <!-- Game Screen -->
-  <!-- <div *ngIf="gameStarted && game" class="game-board">
-    <div class="current-path">
-      <h3>Your Path:</h3>
-      <div class="players-chain">
-        <div class="player-card">
-          <strong>{{ currentPlayer.name }}</strong>
-          <p>{{ currentPlayer.position }} - {{ currentPlayer.team }}</p>
-        </div>
-        <div *ngFor="let move of moves" class="move">
-          <p class="connection">via {{ move.connection }}</p>
-          <div class="player-card">
-            <strong>{{ move.to_player.name }}</strong>
-            <p>{{ move.to_player.position }} - {{ move.to_player.team }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="move-input">
-      <h3>Make a Move:</h3>
-      <div class="search-box">
-        <input
-          [(ngModel)]="searchQueryMove"
-          (keyup)="searchPlayersMove()"
-          type="text"
-          placeholder="Search for a player..."
-          class="search-input"
-        />
-      </div>
-
-      <div *ngIf="searchResultsMove.length > 0" class="search-results">
-        <button
-          *ngFor="let player of searchResultsMove"
-          (click)="selectPlayer(player)"
-          class="player-btn"
-        >
-          {{ player.name }} ({{ player.position }} - {{ player.team }})
-        </button>
-      </div>
-
-      <div class="connection-input">
-        <input
-          [(ngModel)]="connection"
-          type="text"
-          placeholder="How are they connected? (e.g., 'Played for Yankees in 2015')"
-          class="connection-field"
-        />
-      </div>
-    </div> -->
-
-    <!-- <div class="move-count">
-      <p><strong>Moves: {{ moves.length }}</strong></p>
-      <p>Target: {{ game.target_player.name }}</p>
-    </div> -->
-
     <!-- Victory Screen -->
     <div *ngIf="gameWon" class="victory-screen">
       <div class="victory-content">
@@ -176,27 +128,6 @@
         <h3>
           Your path: {{startPlayer.name}} → {{ validGuesses.map(p => p.name).join(' → ') }} → {{ targetPlayer.name }}
         </h3>
-        
-        <!-- <p class="victory-stats">
-          <strong>Your Moves:</strong> {{ moves.length }}<br>
-          <strong>Optimal Moves:</strong> {{ optimalPathLength }}<br>
-          <strong>Performance:</strong>
-          <span *ngIf="moves.length === optimalPathLength" class="perfect">Perfect!</span>
-          <span *ngIf="moves.length < optimalPathLength" class="excellent">Better than optimal!</span>
-          <span *ngIf="moves.length > optimalPathLength" class="good">{{ moves.length - optimalPathLength }} more than optimal</span>
-        </p> -->
-
-        <!-- <div *ngIf="optimalPath && optimalPath.length > 0" class="optimal-path">
-          <h3>Optimal Path ({{ optimalPathLength }} moves):</h3>
-          <div class="optimal-chain">
-            <div *ngFor="let step of optimalPath; let i = index" class="optimal-step">
-              <div class="optimal-player">{{ step.fullName }}</div>
-              <div *ngIf="i < optimalPath?.length - 1" class="optimal-connection">
-                → {{ step.connection }}
-              </div>
-            </div>
-          </div>
-        </div> -->
 
         <button (click)="resetGame()" class="play-again-button">Play Again</button>
       </div>

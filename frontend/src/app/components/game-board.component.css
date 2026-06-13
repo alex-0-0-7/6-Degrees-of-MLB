@@ -95,28 +95,65 @@
   opacity: 0.6;
 }
 
-.test-mode {
-  text-align: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #dee2e6;
-  color: #666;
-}
-
-.test-button {
-  padding: 10px 20px;
-  background: #6c757d;
+.hint-button {
+  width: 100%;
+  padding: 15px;
+  background: #6546bd;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  font-weight: bold;
   cursor: pointer;
-  font-size: 0.95em;
-  margin-top: 10px;
   transition: all 0.3s;
 }
 
-.test-button:hover {
-  background: #5a6268;
+.hint-button:hover:not(:disabled) {
+  background: #5a3da8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(101, 70, 189, 0.4);
+}
+
+.hint-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button-target {
+  margin-top: 15px;
+}
+
+.guesses-header {
+  margin-bottom: 15px;
+}
+
+.valid-guess {
+  background: #dadd15;
+  color: #000000;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.invalid-guess {
+  background: #dc3545;
+  color: #000000;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.win-guess {
+  background: #28a745;
+  color: #000000;
+  font-weight: bold;
+  text-decoration: underline;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin: 10px 0;
 }
 
 /* Victory Screen */
