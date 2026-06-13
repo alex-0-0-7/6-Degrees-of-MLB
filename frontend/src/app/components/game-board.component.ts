@@ -21,6 +21,7 @@ export class GameBoardComponent implements OnInit {
   optimalPath: any[] = [];
   optimalPathLength: number | null = null;
   gameWon: boolean = false;
+  gameCompleted: boolean = false;
   
   searchResultsStart: any[] = [];
   searchResultsTarget: any[] = [];
@@ -48,22 +49,30 @@ export class GameBoardComponent implements OnInit {
   validGuesses: any[] = [];
 
   placeholder: string = 'Search for a player...';
+  hintUsed: boolean = false;
+  hintUsedTarget: boolean = false;
+
+  startPlayerTeams: string[] = [];
+  targetPlayerTeams: string[] = [];
 
   startYearThreshold: number = 2010; // Only select players from 2010 onwards for better game experience
   endYearThreshold: number = 2025; // Only select players up to 2025 for better game experience
 
-  constructor(@Inject(DOCUMENT) private document: Document,
-    private locationStrategy: LocationStrategy, private gameService: GameService, private http: HttpClient) {}
+  constructor(private gameService: GameService, private http: HttpClient) {}
 
   ngOnInit() {
     // Initialize
     this.players = playersData;
-    // console.log(`players: ${JSON.stringify(this.players)}`);
     this.startGame();
   }
 
   startGame(){
+    this.gameStarted = true;
+    this.gameWon = false;
+    this.gameCompleted = false;
     this.attempts = 0;
+    this.hintUsed = false;
+    this.hintUsedTarget = false;
     do{
       this.startPlayer = this.players['players'][Math.floor(Math.random() * this.players['players'].length)];
       // console.log(`${this.startPlayer.name} start: ${this.startPlayer.year_start}`);
@@ -79,7 +88,19 @@ export class GameBoardComponent implements OnInit {
     this.currentPlayer = this.startPlayer;
     this.nextPlayer = this.currentPlayer;
     this.optimalPath = this.gameService.getBFSPath(this.startPlayer.id, this.targetPlayer.id, this.players['players']);
-    
+
+    const startParsed = this.startPlayer.teams.map((t: any[]) => ({
+      year: Number(t.slice(0, 4)),
+      team: t.slice(5)
+    }));
+    this.startPlayerTeams = this.gameService.truncateTeams(startParsed);
+
+    const targetParsed = this.targetPlayer.teams.map((t: any[]) => ({
+      year: Number(t.slice(0, 4)),
+      team: t.slice(5)
+    }));
+    this.targetPlayerTeams = this.gameService.truncateTeams(targetParsed);
+
     this.placeholder='Search for a player...';
 
 
@@ -135,11 +156,9 @@ export class GameBoardComponent implements OnInit {
   guessPlayer(){
     this.valid = false;
     let validGuess=false;
-    console.log(`guessing ${this.currentPlayer.name}`);
-
+    
     for(let team of this.currentPlayer.teams) {
       for(let team2 of this.nextPlayer.teams) {
-        console.log(`checking guessed player ${this.currentPlayer.name} ${team} vs previous player ${this.nextPlayer.name} ${team2}`);
         if (team === team2){
           validGuess=true;
           break;
@@ -147,17 +166,16 @@ export class GameBoardComponent implements OnInit {
       }
       if(validGuess) break;
     }
-    console.log(` guessed player ${this.currentPlayer.name} - valid guess: ${validGuess}`);
     if(validGuess){
       this.validGuesses.push(this.currentPlayer);
       for(let team of this.currentPlayer.teams) {
         for(let team2 of this.targetPlayer.teams) {
-          console.log(`checking guessed player ${this.currentPlayer.name} ${team} vs target player ${this.targetPlayer.name} ${team2}`);
           if(team === team2 && validGuess){ // If they share a team, player wins
-            console.log(`win  ${this.currentPlayer.name} - valid guess: ${validGuess}`);
             this.guesses.push({player: this.currentPlayer, validGuess: validGuess, win: true});
-            this.gameWon = true;
-            this.showVictoryScreen();
+            setTimeout(() => {
+              this.gameCompleted = true;
+              this.gameWon = true;
+            }, 1000);
             return;
           }
         }
@@ -167,115 +185,22 @@ export class GameBoardComponent implements OnInit {
     this.attempts++;
     this.guesses.push({player: this.currentPlayer, validGuess: validGuess, win: false});
     if(this.guesses.length >= 6){
-      alert(`Game Over! You have used all 6 attempts. The optimal path was ${this.startPlayer.name} → ${this.optimalPath[this.optimalPath.length - 1].name} → ${this.targetPlayer.name}`);
-      this.gameWon = true; // End the game
+      this.gameCompleted = true;
+      this.gameWon = false; // End the game
     }
     this.placeholder = `Search for a player...`;
 
   }
 
-  searchPlayersMove() {
-    if (this.searchQueryMove.length < 2) {
-      this.searchResultsMove = [];
-      return;
-    }
-    this.loading = true;
-    this.gameService.searchPlayers(this.searchQueryMove).subscribe({
-      next: (results) => {
-        this.searchResultsMove = results;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Search error:', err);
-        this.loading = false;
-      }
-    });
+  toggleHint() {
+    this.hintUsed = true;
   }
 
-  startNewGame() {
-    if (!this.startPlayer || !this.targetPlayer) {
-      alert('Please select both start and target players');
-      return;
-    }
-
-    this.gameService.createGame(1, this.startPlayer.id, this.targetPlayer.id).subscribe({
-      next: (game) => {
-        this.game = game;
-        this.gameId = game.id;
-        this.currentPlayer = game.start_player;
-        this.moves = [];
-        this.gameWon = false;
-        this.gameStarted = true;
-        this.startPlayer = null;
-        this.targetPlayer = null;
-        this.searchResultsStart = [];
-        this.searchResultsTarget = [];
-        this.searchQueryStart = '';
-        this.searchQueryTarget = '';
-        
-        // Calculate optimal path using BFS
-        // this.calculateOptimalPath(game.start_player.id, game.target_player.id);
-      },
-      error: (err) => {
-        console.error('Error creating game:', err);
-        alert('Error creating game');
-      }
-    });
-  }
-
-  calculateOptimalPath(startId: number, endId: number) {
-    this.gameService.findShortestPath(startId, endId).subscribe({
-      next: (result) => {
-        if (result.found) {
-          this.optimalPath = result.path;
-          this.optimalPathLength = result.length;
-        }
-      },
-      error: (err) => {
-        console.error('Error calculating path:', err);
-      }
-    });
-  }
-
-  useSampleGame() {
-    // Create a game with sample IDs (first two players in database)
-    this.gameService.createGame(1, 1, 2).subscribe({
-      next: (game) => {
-        this.game = game;
-        this.gameId = game.id;
-        this.currentPlayer = game.start_player;
-        this.moves = [];
-        this.gameStarted = true;
-      },
-      error: (err) => {
-        console.error('Error creating sample game:', err);
-        alert('Error creating game. Make sure backend is running and database is seeded!');
-      }
-    });
-  }
-
-  loadGame() {
-    if (!this.gameId) return;
-    this.gameService.getGame(this.gameId).subscribe({
-      next: (game) => {
-        this.game = game;
-        this.currentPlayer = game.start_player;
-        this.loadGameHistory();
-      }
-    });
-  }
-
-  loadGameHistory() {
-    if (!this.gameId) return;
-    this.gameService.getGameHistory(this.gameId).subscribe({
-      next: (data) => {
-        this.moves = data.moves;
-      }
-    });
+  toggleHintTarget() {
+    this.hintUsedTarget = true;
   }
 
   selectStartPlayer(player: any) {
-    // this.startPlayer = player;
     this.placeholder = player.name;
     this.currentPlayer = player;
     this.searchResultsStart = [];
@@ -287,16 +212,6 @@ export class GameBoardComponent implements OnInit {
     this.targetPlayer = player;
     this.searchResultsTarget = [];
     this.searchQueryTarget = '';
-  }
-
-  showVictoryScreen() {
-    const userMoves = this.moves.length;
-    const optimalMoves = this.optimalPathLength || 0;
-    const comparison = userMoves === optimalMoves ? 'Perfect!' : 
-                       userMoves < optimalMoves ? 'Better than optimal!' :
-                       `${optimalMoves} moves was optimal`;
-    
-    // alert(`🎉 Victory! ${userMoves} moves (${comparison}). Optimal path: ${this.startPlayer.name} → ${this.optimalPath[this.optimalPath.length - 1].name} → ${this.targetPlayer.name}`);
   }
 
   searchBFS(startId: number, endId: number) {
