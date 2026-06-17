@@ -8,6 +8,11 @@ interface Player {
     teams: string[];
 }
 
+interface TeamYear{
+  year: number;
+  team: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -134,5 +139,36 @@ export class GameService {
       }
     }
     return null; // No path found
+  }
+
+  truncateTeams(teams: TeamYear[]): string[] {
+    const result: string[] = [];
+
+    let start = teams[0].year;
+    let end = teams[0].year;
+    let currentTeam = teams[0].team;
+
+    for (let i = 1; i < teams.length; i++) {
+      const item = teams[i];
+
+      if (item.team === currentTeam && item.year === end + 1) {
+        end = item.year;
+      } else {
+        result.push(start === end
+            ? `${start} ${currentTeam}`
+            : `${start} - ${end} ${currentTeam}`
+        );
+
+        start = end = item.year;
+        currentTeam = item.team;
+      }
+    }
+
+    result.push(start === end
+        ? `${start} ${currentTeam}`
+        : `${start} - ${end} ${currentTeam}`
+    );
+
+    return result;
   }
 }
