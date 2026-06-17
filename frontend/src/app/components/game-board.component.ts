@@ -3,8 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameService } from '../services/game.service';
 import { HttpClient } from '@angular/common/http';
-import { DOCUMENT, LocationStrategy } from '@angular/common';
 import playersData from '../../assets/players.json';
+import dailies from '../../assets/dailies.json';
+
+interface Player{
+  name: string,
+  id:number,
+  year_start:number,
+  year_end:number,
+  teams:[]
+}
 
 @Component({
   selector: 'app-game-board',
@@ -22,24 +30,28 @@ export class GameBoardComponent implements OnInit {
   optimalPathLength: number | null = null;
   gameWon: boolean = false;
   gameCompleted: boolean = false;
+
+  imgPath: string = '';
   
   searchResultsStart: any[] = [];
   searchResultsTarget: any[] = [];
   searchResultsMove: any[] = [];
   
   currentPlayer: any = null;
-  connection: string = '';
   loading = false;
   gameStarted = false;
+  gameEnded = false;
   startPlayer: any = null;
   targetPlayer: any = null;
   nextPlayer: any = null;
+  showVictoryScreen: boolean = false;
 
   searchQueryStart: any = '';
   searchQueryTarget: any = '';
   searchQueryMove: any = '';
 
   players: any = {};
+  dailies: any = {};
 
   valid: boolean = false;
 
@@ -63,31 +75,41 @@ export class GameBoardComponent implements OnInit {
   ngOnInit() {
     // Initialize
     this.players = playersData;
-    this.startGame();
+    this.dailies = dailies;
+    this.imgPath = 'assets/sample.png';
   }
 
   startGame(){
-    this.gameStarted = true;
+    
     this.gameWon = false;
     this.gameCompleted = false;
     this.attempts = 0;
     this.hintUsed = false;
     this.hintUsedTarget = false;
-    do{
-      this.startPlayer = this.players['players'][Math.floor(Math.random() * this.players['players'].length)];
-      // console.log(`${this.startPlayer.name} start: ${this.startPlayer.year_start}`);
-    // }while(this.startPlayer.year_start < this.startYearThreshold); // Only select players from 2010 onwards for better game experience
-    }while(this.startPlayer.year_end !== this.endYearThreshold); // Only select active players for better game experience
+    
+    const mode='test';
 
-    this.targetPlayer = this.searchPlayersTarget(this.startPlayer, this.players['players'][Math.floor(Math.random() * this.players['players'].length)]);
-    if(this.targetPlayer.year_start > this.startPlayer.year_start) { // make sure start player is later than target player for better game experience
-      const temp = this.startPlayer;
-      this.startPlayer = this.targetPlayer;
-      this.targetPlayer = temp;
+    if(mode === 'test') {
+        this.startPlayer = this.players['players'].find((x: Player) => x.id == this.dailies['test'].startId);
+        this.targetPlayer = this.players['players'].find((x: Player) => x.id == this.dailies['test'].targetId);
+    } else if(mode === 'unlimited') {
+        do{
+          this.startPlayer = this.players['players'][Math.floor(Math.random() * this.players['players'].length)];
+        }while(this.startPlayer.year_end !== this.endYearThreshold); // Only select active players for better game experience
+        this.targetPlayer = this.searchPlayersTarget(this.startPlayer, this.players['players'][Math.floor(Math.random() * this.players['players'].length)]);
+        if(this.targetPlayer.year_start > this.startPlayer.year_start) { // make sure start player is later than target player for better game experience
+          const temp = this.startPlayer;
+          this.startPlayer = this.targetPlayer;
+          this.targetPlayer = temp;
+        }
+    } else{ //default to test
+        this.startPlayer = this.players.find((x: Player) => x.id == this.dailies['test'].startId);
+        this.targetPlayer = this.players.find((x: Player) => x.id == this.dailies['test'].targetId);
     }
+    
     this.currentPlayer = this.startPlayer;
     this.nextPlayer = this.currentPlayer;
-    this.optimalPath = this.gameService.getBFSPath(this.startPlayer.id, this.targetPlayer.id, this.players['players']);
+    this.optimalPath = this.gameService.getBFSPath(this.startPlayer['id'], this.targetPlayer['id'], this.players['players']);
 
     const startParsed = this.startPlayer.teams.map((t: any[]) => ({
       year: Number(t.slice(0, 4)),
@@ -102,8 +124,38 @@ export class GameBoardComponent implements OnInit {
     this.targetPlayerTeams = this.gameService.truncateTeams(targetParsed);
 
     this.placeholder='Search for a player...';
+  }
 
+  toggleStart(){
+    this.gameStarted = true;
+    this.gameEnded = false;
+    this.startGame();
+  }
 
+  toggleVictoryScreen(){
+    this.showVictoryScreen = !this.showVictoryScreen;
+  }
+
+  selectPlayers(mode: string) {
+      if(mode === 'test') {
+        console.log(`startPlayer id: ${this.dailies['test'].startId} targetPlayer id ${this.dailies['test']['targetId']}`);
+        
+        this.startPlayer = this.players['players'].find((x: { id: any; }) => x.id === this.dailies['test'].startId);
+        this.targetPlayer = this.players['players'].find((x: { id: any; }) => x.id === this.dailies['test'].targetId);
+      } else if(mode === 'unlimited') {
+        do{
+          this.startPlayer = this.players['players'][Math.floor(Math.random() * this.players['players'].length)];
+        }while(this.startPlayer.year_end !== this.endYearThreshold); // Only select active players for better game experience
+        this.targetPlayer = this.searchPlayersTarget(this.startPlayer, this.players['players'][Math.floor(Math.random() * this.players['players'].length)]);
+        if(this.targetPlayer.year_start > this.startPlayer.year_start) { // make sure start player is later than target player for better game experience
+          const temp = this.startPlayer;
+          this.startPlayer = this.targetPlayer;
+          this.targetPlayer = temp;
+        }
+      } else{ //default to test
+        this.startPlayer = this.players.find((x: { id: any; }) => x.id === this.dailies['test'].startId);
+        this.targetPlayer = this.players.find((x: { id: any; }) => x.id === this.dailies['test'].targetId);
+      }
   }
 
   searchPlayersStart() {
@@ -172,10 +224,15 @@ export class GameBoardComponent implements OnInit {
         for(let team2 of this.targetPlayer.teams) {
           if(team === team2 && validGuess){ // If they share a team, player wins
             this.guesses.push({player: this.currentPlayer, validGuess: validGuess, win: true});
-            setTimeout(() => {
-              this.gameCompleted = true;
-              this.gameWon = true;
-            }, 1000);
+            this.showVictoryScreen = true;
+            this.gameCompleted = true;
+            this.gameEnded=true;
+            this.gameWon = true;
+            // setTimeout(() => {
+            //   this.gameCompleted = true;
+            //   this.gameWon = true;
+            
+            // }, 1);
             return;
           }
         }
@@ -185,7 +242,9 @@ export class GameBoardComponent implements OnInit {
     this.attempts++;
     this.guesses.push({player: this.currentPlayer, validGuess: validGuess, win: false});
     if(this.guesses.length >= 6){
+      this.showVictoryScreen = true;
       this.gameCompleted = true;
+      this.gameEnded=true;
       this.gameWon = false; // End the game
     }
     this.placeholder = `Search for a player...`;
