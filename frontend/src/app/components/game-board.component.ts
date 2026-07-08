@@ -67,6 +67,10 @@ export class GameBoardComponent implements OnInit {
   startPlayerTeams: string[] = [];
   targetPlayerTeams: string[] = [];
 
+  startPlayerImg: string = '';
+  targetPlayerImg: string = '';
+  selectedPlayerImg: string = '';
+
   startYearThreshold: number = 2010; // Only select players from 2010 onwards for better game experience
   endYearThreshold: number = 2025; // Only select players up to 2025 for better game experience
 
@@ -122,6 +126,9 @@ export class GameBoardComponent implements OnInit {
       team: t.slice(5)
     }));
     this.targetPlayerTeams = this.gameService.truncateTeams(targetParsed);
+
+    this.startPlayerImg = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_480,q_auto:best/v1/people/${this.startPlayer['id']}/headshot/67/current`;
+    this.targetPlayerImg = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_480,q_auto:best/v1/people/${this.targetPlayer['id']}/headshot/67/current`;
 
     this.placeholder='Search for a player...';
   }
@@ -265,6 +272,7 @@ export class GameBoardComponent implements OnInit {
     this.searchResultsStart = [];
     this.searchQueryStart = '';
     this.valid = true;
+    this.selectedPlayerImg=`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_480,q_auto:best/v1/people/${player['id']}/headshot/67/current`;
   }
 
   selectTargetPlayer(player: any) {

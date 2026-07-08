@@ -10,10 +10,22 @@
     <div class="player-selection">
       <div class="select-section">
         <h4>Use mutual teammates to connect: </h4>
-        <h5>
-          {{ startPlayer?.name }} {{!startPlayer?.unique_name ? startPlayer?.year_start === startPlayer?.year_end ? '(' + startPlayer?.year_start + ')' : '(' + startPlayer?.year_start + '-' + startPlayer?.year_end + ')' : '' }}  
-          and {{ targetPlayer?.name }} {{!targetPlayer?.unique_name ? targetPlayer?.year_start === targetPlayer?.year_end ? '(' + targetPlayer?.year_start + ')' : '(' + targetPlayer?.year_start + '-' + targetPlayer?.year_end + ')' : '' }}
-        </h5>
+        <div class="container">
+          <div class="playerContainer">
+            <img [src]=startPlayerImg class="playerImage"/>
+            <h5>
+              {{ startPlayer?.name }} {{!startPlayer?.unique_name ? startPlayer?.year_start === startPlayer?.year_end ? '(' + startPlayer?.year_start + ')' : '(' + startPlayer?.year_start + '-' + startPlayer?.year_end + ')' : '' }}
+            </h5>
+          </div>
+          <h5>and</h5>
+          <div class="playerContainer">
+            <img [src]="targetPlayerImg" class="playerImage"/>
+            <h5 class="playersHeader" style="text-align: justify;">
+              {{ targetPlayer?.name }} {{!targetPlayer?.unique_name ? targetPlayer?.year_start === targetPlayer?.year_end ? '(' + targetPlayer?.year_start + ')' : '(' + targetPlayer?.year_start + '-' + targetPlayer?.year_end + ')' : '' }}
+            </h5>
+          </div>
+        </div>
+        
         <h5>Guesses remaining: {{ 6 - attempts }}</h5>
         <h5>Enter a teammate of {{ nextPlayer?.name }}</h5>
         
@@ -21,9 +33,13 @@
           <h5>Previous Guesses:</h5>
           <div class="guesses-list">
             <div *ngFor="let guess of guesses" [ngClass]="{'valid-guess': guess.validGuess, 'invalid-guess': !guess.validGuess, 'win-guess': guess.win}">
-              {{ guess.player.name }}
+              {{ guess.player.name }} - {{ guess.validGuess ? 'Valid' : 'Invalid' }} {{ guess.win ? '(WINNING)' : '' }}
             </div>
           </div>
+        </div>
+
+        <div *ngIf="valid" class="selected-player-container">
+          <img [src]="selectedPlayerImg" class="selected-player-image">
         </div>
 
         <input
@@ -105,10 +121,6 @@
           Take this example: The starting player is Vladimir Guerrero Jr. and the target player is Mike Trout. 
         </h5>
         <img [src]="imgPath" alt="Sample image"/>
-        <p>Since Aaron Judge did not play with Vladimir Guerrero Jr, it is an <span style="background-color: red; padding: 2px 2px;">INVALID</span> guess</p>
-        <p>Since Alejandro Kirk played with Vladimir Guerrero Jr, but not with Mike Trout, it is a <span style="background-color: yellow; padding: 2px 2px;">VALID</span> guess, but not a winning guess.</p>
-        <p>The starting player shifts from Vladimir Guerrero Jr. to Alejandro Kirk. Now, you must find a teammate of Alejandro Kirk who has also played with Mike Trout.</p>
-        <p>Since Yusei Kikuchi played with both Alejandro Kirk and Mike Trout, it is a <span style="background-color: green; padding: 2px 2px;">WINNING</span> guess.</p>
         
         <button (click)="toggleStart()" class="play-again-button">Start Game!</button>
       </div>
